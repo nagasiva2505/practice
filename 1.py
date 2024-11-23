@@ -1,26 +1,18 @@
+import requests
 from bs4 import BeautifulSoup
-import cloudscraper
 from re import findall
 from time import sleep
-import pycurl
-from sys import stderr as STREAM
-import time
-import urllib.parse  # For URL encoding
+from tqdm import tqdm  # Optional for download progress bar
 
 # Accepting Sendcm URL from User
-url = input("Enter Sendcm URL (default is https://send.cm/aecdgu9xisny): ") or "https://send.cm/aecdgu9xisny"
+url = input("Enter your Sendcm URL : ")
 
-# Check if the URL is a valid Send.cm URL
 if "send.cm" not in url:
     print("\nURL Entered is not Supported!\n")
     exit()
 
 base_url = "https://send.cm/"
-client = cloudscraper.create_scraper(allow_brotli=False)
-hs = {
-    "Content-Type": "application/x-www-form-urlencoded", 
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36"
-}
+client = requests.Session()
 
 def is_sendcm_folder_link(url):
     return (
@@ -30,10 +22,7 @@ def is_sendcm_folder_link(url):
         or f"{base_url}?sort_order" in url
     )
 
-# Determine if it's a Send.cm folder link
 is_sendcm_folder = is_sendcm_folder_link(url)
-
-# For downloading single files or folders
 if is_sendcm_folder:
     done = False
     page_no = 0
@@ -55,28 +44,20 @@ if is_sendcm_folder:
             file_name = findall("URL=(.*?) - ", resp2.text)[0].split("]")[1]
             parse = {"op": "download2", "id": file_id, "referer": url}
             sleep(2)
-            resp3 = client.post(base_url, data=parse, headers=hs, allow_redirects=False)
-
-            # Check for the redirect location
-            if 'Location' in resp3.headers:
-                dl_url = resp3.headers["Location"]
-                dl_url = urllib.parse.quote(dl_url, safe="%/:=&?~#+!$,;'@()*[]")  # URL encode to handle special characters
-                print("Fιℓє Nαмє: ", file_name)
-                print("Fɪʟᴇ Lɪɴᴋ: ", file_url)
-                print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
-                print("\n")
-            else:
-                print("Download link not found.\n")
-                continue
-            
-            # Pagination logic
+            resp3 = client.post(base_url, data=parse, allow_redirects=False)
+            dl_url = resp3.headers["Location"]
+            dl_url = dl_url.replace(" ", "%20")
+            print("Fιℓє Nαмє: ", file_name)
+            print("Fɪʟᴇ Lɪɴᴋ: ", file_url)
+            print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
+            print("\n")
             pages = soup.find("ul", class_="pagination")
-            if pages is None:
+            if pages == None:
                 done = True
             else:
                 current_page = pages.find("li", "page-item actived", recursive=False)
                 next_page = current_page.next_sibling
-                if next_page is None:
+                if next_page == None:
                     done = True
                 else:
                     url = base_url + next_page["href"]
@@ -88,47 +69,22 @@ else:
     file_name = findall("URL=(.*?) - ", resp.text)[0].split("]")[1]
     parse = {"op": "download2", "id": file_id, "referer": url}
     sleep(2)
-    resp2 = client.post(base_url, data=parse, headers=hs, allow_redirects=False)
-    
-    # Check for the redirect location
-    if 'Location' in resp2.headers:
-        dl_url = resp2.headers["Location"]
-        dl_url = urllib.parse.quote(dl_url, safe="%/:=&?~#+!$,;'@()*[]")  # URL encode to handle special characters
-        print("\n")
-        print("Fιℓє Nαмє: ", file_name)
-        print("Fɪʟᴇ Lɪɴᴋ: ", url)
-        print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
-        print("\n")
-    else:
-        print("Download link not found.\n")
+    resp2 = client.post(base_url, data=parse, allow_redirects=False)
+    dl_url = resp2.headers["Location"]
+    dl_url = dl_url.replace(" ", "%20")
+    print("\n")
+    print("Fιℓє Nαмє: ", file_name)
+    print("Fɪʟᴇ Lɪɴᴋ: ", url)
+    print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
+    print("\n")
 
-# Define callback function for download progress
-kb = 1024  # Convert bytes to kilobytes for easier reading
-def status(download_t, download_d, upload_t, upload_d):
-    STREAM.write('Downloading: {}/{} kiB ({}%)\r'.format(
-        str(int(download_d/kb)),
-        str(int(download_t/kb)),
-        str(int(download_d/download_t*100) if download_t > 0 else 0)
-    ))
-    STREAM.flush()
+# Download the file using requests and tqdm progress bar
+response = requests.get(dl_url, stream=True)
+file_size = int(response.headers.get('Content-Length', 0))
 
-# Download file using pycurl with retry logic
+# Open file in write-binary mode
 with open(file_name, 'wb') as f:
-    c = pycurl.Curl()
-    c.setopt(c.URL, dl_url)
-    c.setopt(c.WRITEDATA, f)
-    c.setopt(c.SSL_VERIFYPEER, False)  # Disable SSL verification
-    c.setopt(c.SSL_VERIFYHOST, False)  # Disable SSL verification
-    c.setopt(c.SSLVERSION, pycurl.ssl.SSLVERSION_TLSv1_2)  # Enforce TLS v1.2
+    for data in tqdm(response.iter_content(chunk_size=1024), total=file_size//1024, unit='KB', desc=file_name):
+        f.write(data)
 
-    c.setopt(c.NOPROGRESS, False)
-    c.setopt(c.XFERINFOFUNCTION, status)
-
-    try:
-        c.perform()
-    except pycurl.error as e:
-        print(f"Error during download: {e}")
-    finally:
-        c.close()
-
-print("Download complete.")
+print("\nDownload Complete!")
