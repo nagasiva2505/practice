@@ -4,6 +4,8 @@ from re import findall
 from time import sleep
 import pycurl
 from sys import stderr as STREAM
+import time
+import urllib.parse  # For URL encoding
 
 # Accepting Sendcm URL from User
 url = input("Enter Sendcm URL (default is https://send.cm/aecdgu9xisny): ") or "https://send.cm/aecdgu9xisny"
@@ -31,6 +33,7 @@ def is_sendcm_folder_link(url):
 # Determine if it's a Send.cm folder link
 is_sendcm_folder = is_sendcm_folder_link(url)
 
+# For downloading single files or folders
 if is_sendcm_folder:
     done = False
     page_no = 0
@@ -53,12 +56,18 @@ if is_sendcm_folder:
             parse = {"op": "download2", "id": file_id, "referer": url}
             sleep(2)
             resp3 = client.post(base_url, data=parse, headers=hs, allow_redirects=False)
-            dl_url = resp3.headers["Location"]
-            dl_url = dl_url.replace(" ", "%20")
-            print("Fιℓє Nαмє: ", file_name)
-            print("Fɪʟᴇ Lɪɴᴋ: ", file_url)
-            print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
-            print("\n")
+
+            # Check for the redirect location
+            if 'Location' in resp3.headers:
+                dl_url = resp3.headers["Location"]
+                dl_url = urllib.parse.quote(dl_url, safe="%/:=&?~#+!$,;'@()*[]")  # URL encode to handle special characters
+                print("Fιℓє Nαмє: ", file_name)
+                print("Fɪʟᴇ Lɪɴᴋ: ", file_url)
+                print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
+                print("\n")
+            else:
+                print("Download link not found.\n")
+                continue
             
             # Pagination logic
             pages = soup.find("ul", class_="pagination")
@@ -80,13 +89,18 @@ else:
     parse = {"op": "download2", "id": file_id, "referer": url}
     sleep(2)
     resp2 = client.post(base_url, data=parse, headers=hs, allow_redirects=False)
-    dl_url = resp2.headers["Location"]
-    dl_url = dl_url.replace(" ", "%20")
-    print("\n")
-    print("Fιℓє Nαмє: ", file_name)
-    print("Fɪʟᴇ Lɪɴᴋ: ", url)
-    print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
-    print("\n")
+    
+    # Check for the redirect location
+    if 'Location' in resp2.headers:
+        dl_url = resp2.headers["Location"]
+        dl_url = urllib.parse.quote(dl_url, safe="%/:=&?~#+!$,;'@()*[]")  # URL encode to handle special characters
+        print("\n")
+        print("Fιℓє Nαмє: ", file_name)
+        print("Fɪʟᴇ Lɪɴᴋ: ", url)
+        print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
+        print("\n")
+    else:
+        print("Download link not found.\n")
 
 # Define callback function for download progress
 kb = 1024  # Convert bytes to kilobytes for easier reading
@@ -98,22 +112,17 @@ def status(download_t, download_d, upload_t, upload_d):
     ))
     STREAM.flush()
 
-# Download file using pycurl
+# Download file using pycurl with retry logic
 with open(file_name, 'wb') as f:
     c = pycurl.Curl()
     c.setopt(c.URL, dl_url)
     c.setopt(c.WRITEDATA, f)
-    
-    # Set SSL verification options to prevent the "certificate verify locations" error
-    c.setopt(c.SSL_VERIFYPEER, False)  # Disable peer SSL verification
-    c.setopt(c.SSL_VERIFYHOST, False)  # Disable host SSL verification
-    
-    # Set the callback function for download progress
+    c.setopt(c.SSL_VERIFYPEER, False)  # Disable SSL verification
+    c.setopt(c.SSL_VERIFYHOST, False)  # Disable SSL verification
+    c.setopt(c.SSLVERSION, pycurl.ssl.SSLVERSION_TLSv1_2)  # Enforce TLS v1.2
+
     c.setopt(c.NOPROGRESS, False)
     c.setopt(c.XFERINFOFUNCTION, status)
-    
-    # Optional: Set a custom CA file if necessary (uncomment if needed)
-    # c.setopt(c.CAINFO, '/path/to/your/ca-bundle.crt')  # Uncomment and set path if necessary
 
     try:
         c.perform()
@@ -122,5 +131,4 @@ with open(file_name, 'wb') as f:
     finally:
         c.close()
 
-# Keep the progress on-screen after download completes
-print()
+print("Download complete.")
