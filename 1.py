@@ -2,7 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 from re import findall
 from time import sleep
-from tqdm import tqdm  # Optional for download progress bar
 
 # Accepting Sendcm URL from User
 url = input("Enter your Sendcm URL : ")
@@ -78,13 +77,13 @@ else:
     print("Dᴏᴡɴʟᴏᴀᴅ Lɪɴᴋ: ", dl_url)
     print("\n")
 
-# Download the file using requests and tqdm progress bar
+# Download the file using requests
 response = requests.get(dl_url, stream=True)
 file_size = int(response.headers.get('Content-Length', 0))
 
 # Open file in write-binary mode
 with open(file_name, 'wb') as f:
-    for data in tqdm(response.iter_content(chunk_size=1024), total=file_size//1024, unit='KB', desc=file_name):
+    for data in response.iter_content(chunk_size=1024):
         f.write(data)
 
 print("\nDownload Complete!")
