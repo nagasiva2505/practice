@@ -1,0 +1,154 @@
+Here’s a step-by-step guide to integrating Talend with GitLab for version control:
+
+Prerequisites:
+
+Talend Studio (Enterprise or Open Studio with Git support)
+
+GitLab account and repository set up
+
+Git installed on your machine (optional, for advanced Git operations)
+
+
+
+---
+
+Step 1: Set Up a Git Repository in GitLab
+
+1. Log in to GitLab.
+
+
+2. Create a new project:
+
+Click on the "New Project" button.
+
+Choose "Blank Project".
+
+Enter a Project Name, set the Visibility (Public/Private/Internal), and click "Create Project".
+
+
+
+3. Copy the repository URL (SSH or HTTPS) from the repository page.
+
+
+
+
+---
+
+Step 2: Configure Talend to Use Git
+
+1. Open Talend Studio.
+
+
+2. Go to File > Edit Project Settings (or Manage Connections on the login screen).
+
+
+3. Click SVN/Git Settings:
+
+Choose Git as the version control system.
+
+Enter the Git repository URL (from GitLab).
+
+Choose either:
+
+HTTPS: Enter your GitLab username and personal access token (or password).
+
+SSH: Use an SSH key if configured with GitLab.
+
+
+
+
+
+
+---
+
+Step 3: Clone the Repository in Talend Studio
+
+1. From the Talend login screen, click Manage Connections.
+
+
+2. Click Add to create a new Git connection:
+
+Repository URL: Paste your GitLab repo URL.
+
+Branch: Choose or create the branch (e.g., main or develop).
+
+Authentication: Use your credentials or SSH key.
+
+
+
+3. Click Finish to clone the repository.
+
+
+
+
+---
+
+Step 4: Create and Manage Projects in Git
+
+1. Create a new project:
+
+Go to File > New > Project.
+
+Select Store on Git when prompted.
+
+Choose the GitLab repository and branch.
+
+
+
+2. Commit and Push Changes:
+
+In Talend, right-click your project.
+
+Select Team > Commit to commit changes.
+
+Enter a commit message and click Commit.
+
+To push changes to GitLab, right-click the project and select Team > Push.
+
+
+
+
+
+---
+
+Step 5: Pull and Merge Updates
+
+1. To pull changes from GitLab:
+
+Right-click the project and select Team > Pull.
+
+
+
+2. To resolve conflicts:
+
+Use Talend’s conflict resolution tools or external Git tools.
+
+
+
+
+
+---
+
+Optional: Set Up CI/CD with GitLab
+
+1. Create a .gitlab-ci.yml file in the repository.
+
+
+2. Define pipelines for automated Talend jobs.
+
+
+3. Monitor your CI/CD pipelines in GitLab’s CI/CD section.
+
+
+
+
+---
+
+Tips:
+
+Personal Access Token: Generate from GitLab > Settings > Access Tokens (use if HTTPS is required).
+
+SSH Setup: Ensure SSH keys are added to GitLab > Settings > SSH Keys if using SSH.
+
+
+Would you like help configuring your .gitlab-ci.yml for Talend?
