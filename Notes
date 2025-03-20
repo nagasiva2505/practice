@@ -21,3 +21,42 @@ Please let me know if you need any further details. Looking forward to your kind
 Best regards,
 Ozili Prasanth Kumar
 9014817467
+
+// Import required Java classes
+import java.io.*;
+
+globalMap.put("fileIndex", globalMap.get("fileIndex") == null ? 1 : (Integer) globalMap.get("fileIndex"));
+globalMap.put("currentSize", globalMap.get("currentSize") == null ? 0L : (Long) globalMap.get("currentSize"));
+
+// Define constants
+final long MAX_FILE_SIZE = 10L * 1024 * 1024 * 1024; // 10GB in bytes
+
+// Get current file index and size from globalMap
+int fileIndex = (Integer) globalMap.get("fileIndex");
+long currentSize = (Long) globalMap.get("currentSize");
+
+// Define output file path dynamically
+String outputPath = "C:/TalendOutput/split_file_" + fileIndex + ".csv";
+BufferedWriter writer = (BufferedWriter) globalMap.get("fileWriter_" + fileIndex);
+
+// If writer is null or file exceeds 10GB, create a new file
+if (writer == null || currentSize >= MAX_FILE_SIZE) {
+    if (writer != null) {
+        writer.close(); // Close previous file
+    }
+    fileIndex++; // Increment file index
+    globalMap.put("fileIndex", fileIndex);
+    outputPath = "C:/TalendOutput/split_file_" + fileIndex + ".csv";
+    writer = new BufferedWriter(new FileWriter(outputPath));
+    globalMap.put("fileWriter_" + fileIndex, writer);
+    globalMap.put("currentSize", 0L); // Reset size counter
+}
+
+// Convert row data to string
+String rowData = String.join(",", input_row.column1, input_row.column2, input_row.column3) + "\n";
+byte[] rowBytes = rowData.getBytes();
+writer.write(rowData);
+
+// Update file size tracker
+currentSize += rowBytes.length;
+globalMap.put("currentSize", currentSize);
