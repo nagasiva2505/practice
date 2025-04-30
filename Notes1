@@ -75,3 +75,46 @@ These points can help your client understand the value of the migration project 
 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
 ---------------
 Using Talend to migrate data from on-premises databases to Snowflake ensures seamless integration through automated ETL pipelines, maintaining high data quality and real-time synchronization. This approach leverages Snowflake's scalability and performance for efficient data processing, while Talend simplifies the connection and transformation tasks with its native connectors. The migration reduces on-prem infrastructure costs, enhances decision-making with faster data access, and supports future analytics needs with a robust, cloud-based solution. A phased implementation ensures minimal disruption, and a proof of concept can validate the approach before full deployment.
+
+
+
+variables:
+  ARTIFACT_NAME: siva_test
+  DEPLOY_PATH: /sasdata/gsasuat1/tstsasi/appid9082
+  SASPROCESS_PATH: /sasdata/tstsas1/dev/appid9082/siva_test
+  DROPBOX_IN_PATH: /sasdata/gsasuati/tstsas1/dropbox/in/siva_test/path
+  DROPBOX_OUT_PATH: /sasdata/gsasuat1/tstsas1/dropbox/out/siva_test/path
+  EMAIL_TO: tetalinagasiva、tatareddy@truist.com
+  BASE_VERSION: "1.0"
+  ARTIFACT_BASE_URL: "https://artifactory.bbtnet.com/artifactory/SAS-Viya-Grid-local"
+  ARTIFACT_NAME_WITH_EXTENSION: "${ARTIFACT_NAME}.zip"
+  SERVER_DEPLOY_PATH: "${DEPLOY_PATH}/${ARTIFACT_NAME}"
+
+stages:
+  - publish
+  - deploy
+
+deploy_app:
+  stage: deploy
+  image: dex-docker.artifactory.bbtnet.com/manifesto:latest
+  tags:
+    - new-shared-runner
+  variables:
+    PROMOTE_TO_ENV: "uat"
+  before_script:
+    - export SAS_CODE=$(find . -name "*.sas" -printf "%f," | sed 's/,$//')
+    - echo "SAS files found: ${SAS_CODE}"
+  script:
+    - ART_VERSION=$(date +%FT%H%M)
+    - FILE_NAME="${ARTIFACT_NAME}_${ART_VERSION}.zip"
+    - mkdir -p package
+    - cp -r code/* package/ 2>/dev/null || true
+    - cp -r sas_scripts/* package/ 2>/dev/null || true
+    - cp -r parms/* package/ 2>/dev/null || true
+    - find "${SASPROCESS_PATH}" -name "*.sas" -exec cp {} package/ \;
+    - zip -r "${FILE_NAME}" package/*
+    - curl -u "${ARTIFACT_USER}:${ARTIFACT_PASSWORD}" --data-binary @"${FILE_NAME}" -X PUT "${ARTIFACT_BASE_URL}/${ARTIFACT_NAME}/${FILE_NAME}"
+    - chmod +x commit-files.sh
+    - ./commit-files.sh "${ART_VERSION}"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
