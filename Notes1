@@ -118,3 +118,4 @@ deploy_app:
     - ./commit-files.sh "${ART_VERSION}"
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
+- bash -c "find \"$SASPROCESS_PATH\" -name '*.sas' -exec cp {} package/ \;"
