@@ -119,3 +119,24 @@ deploy_app:
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
 - bash -c "find \"$SASPROCESS_PATH\" -name '*.sas' -exec cp {} package/ \;"
+
+
+script:
+  - ART_VERSION=$(date +%FT%H%M)
+  - FILE_NAME="${ARTIFACT_NAME}_${ART_VERSION}.zip"
+
+  # Create package dir and copy SAS files from Git
+  - mkdir -p package
+  - find code/ -name '*.sas' -exec cp {} package/ \;
+  - find sas_scripts/ -name '*.sas' -exec cp {} package/ \;
+  - cp parms/* package/ 2>/dev/null || true
+
+  # Create zip
+  - zip -r "${FILE_NAME}" package/*
+
+  # Upload to Artifactory
+  - curl -u "${ARTIFACT_USER}:${ARTIFACT_PASSWORD}" --data-binary @"${FILE_NAME}" -X PUT "${ARTIFACT_BASE_URL}/${ARTIFACT_NAME}/${FILE_NAME}"
+
+  # Commit version
+  - chmod +x commit-files.sh
+  - ./commit-files.sh "${ART_VERSION}"
