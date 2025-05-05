@@ -140,3 +140,6 @@ script:
   # Commit version
   - chmod +x commit-files.sh
   - ./commit-files.sh "${ART_VERSION}"
+
+
+SAS_CODE=$(find package/ -name '*.sas' -exec basename {} \; | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
