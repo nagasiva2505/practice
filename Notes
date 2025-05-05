@@ -135,3 +135,5 @@ deploy_app:
 
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
+
+- export SAS_CODE=$(find package/ -name '*.sas' -exec basename {} \; | paste -sd ", " -)
